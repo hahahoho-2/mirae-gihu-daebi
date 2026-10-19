@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg"><defs>
+  <symbol id="sprout" viewBox="0 0 24 24"><path d="M12 21v-9M12 14C4 15 2 10 3 4c6-1 10 3 9 10ZM12 12c-1-6 3-10 9-9 1 6-3 10-9 9Z"/><path d="m7 9 5 5m5-7-5 5"/></symbol>
+  <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+  <symbol id="bowl" viewBox="0 0 24 24"><path d="M3 11h18a9 9 0 0 1-18 0Zm3 10h12M8 7c-2-2 2-3 0-5m4 5c-2-2 2-3 0-5m4 5c-2-2 2-3 0-5"/></symbol>
+  <symbol id="home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7M5 9v12h14V9M10 21v-7h4v7"/></symbol>
+  <symbol id="save" viewBox="0 0 24 24"><path d="M5 3h12l4 4v14H3V3h2Zm2 0v6h10V3M7 21v-7h10v7"/></symbol>
+  <symbol id="arrow-right" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+</defs></svg>

@@ -9,6 +9,12 @@
 - 자동 시험: https://hahahoho-2.github.io/mirae-gihu-daebi/tests/test.html
 - 학생에게는 게임 주소 하나만 알려 주면 돼요. 섬 기록은 학생 기기의 브라우저에 저장돼요.
 
+## 함께 있는 웹: 기후시대 생활 RPG (Codex판)
+- 주소: **https://hahahoho-2.github.io/mirae-gihu-daebi/climate-life-rpg/**
+- 원래 주소 https://climate-life-rpg-2026.seongho-ms35.chatgpt.site/ 의 웹을 2026년 10월 19일에 그대로 옮겨 온 거예요(`climate-life-rpg/` 폴더).
+- 바꾼 것은 하나뿐이에요: 원래 사이트의 호스팅 서비스(Cloudflare)가 자동으로 끼워 넣은 봇 검사 스크립트 한 줄을 뺐어요. 게임 내용·그림·글은 그대로예요.
+- 원래 사이트를 고치면 이 폴더는 저절로 바뀌지 않아요. 다시 옮겨 와야 해요.
+
 ## 학급 광장 확인하는 방법
 | 방법 | 준비 | 학생이 할 일 | 선생님이 확인하는 법 |
 |---|---|---|---|
@@ -82,6 +88,7 @@
 | `firebase-rules.json` | Firebase 콘솔에 붙여 넣는 보안 규칙 |
 | `실시간광장_안내.md` | 실시간 반 광장 설정·관리 안내(선생님용) |
 | `js/main.js` | 처음 화면, 캐릭터 만들기, 화면 바꾸기 |
+| `climate-life-rpg/` | 함께 있는 웹 「기후시대 생활 RPG」(Codex판 원본 그대로) |
 | `tests/test.html` · `tests/tests.js` | 자동 시험(받은 자료 다듬기, 섬 코드, 실시간 광장 설정·자료 반영·친구 고르기, 보안 규칙 파일). 저장 기록은 건드리지 않아요. |
 
 ## 시험하기

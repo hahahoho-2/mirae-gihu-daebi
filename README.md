@@ -9,6 +9,12 @@
 - 자동 시험: https://hahahoho-2.github.io/mirae-gihu-daebi/tests/test.html
 - 학생에게는 게임 주소 하나만 알려 주면 돼요. 섬 기록은 학생 기기의 브라우저에 저장돼요.
 
+## 시험판: 5분 기후 대비 미션 (선생님 확인용)
+- 주소: **https://hahahoho-2.github.io/mirae-gihu-daebi/test/** (자동 시험: `test/tests/test.html`)
+- 한 판 5분이에요. 2030년대 → 2050년대 → 2090년대마다 ① 예측 문제 → ② 코인 예산으로 의·식·주 대비 용품 사기 → ③ 여름 5일 자동 점검 → ④ 돌아보기를 해요.
+- 위 1판과 저장 칸이 달라요(`yeoul-island-save-v2`). 1판 기록은 그대로 남아요.
+- 선생님이 확인하고 괜찮다고 하면 위 게임 주소에 반영해요. 그 전까지 1판 주소는 바뀌지 않아요.
+
 ## 함께 있는 웹: 기후시대 생활 RPG (Codex판)
 - 주소: **https://hahahoho-2.github.io/mirae-gihu-daebi/climate-life-rpg/**
 - 원래 주소 https://climate-life-rpg-2026.seongho-ms35.chatgpt.site/ 의 웹을 2026년 10월 19일에 그대로 옮겨 온 거예요(`climate-life-rpg/` 폴더).

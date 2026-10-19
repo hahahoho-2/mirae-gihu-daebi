@@ -1,0 +1,22 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$room": {
+        "residents": {
+          ".read": "auth != null",
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && $room.matches(/^[a-z0-9-]+$/) && $room.length >= 4 && $room.length <= 24",
+            ".validate": "newData.hasChildren(['v', 'n', 'd', 'at'])",
+            "v": { ".validate": "newData.isNumber() && newData.val() === 1" },
+            "n": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 8" },
+            "d": { ".validate": "newData.isString() && newData.val().length <= 8000" },
+            "at": { ".validate": "newData.isNumber() && newData.val() <= now" },
+            "$other": { ".validate": false }
+          }
+        }
+      }
+    }
+  }
+}

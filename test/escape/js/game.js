@@ -225,7 +225,7 @@ const Game = (() => {
           <div>⭐ <b>별·레벨</b> 한 번에 풀면 별 3개(20XP·🪙15), 한 번 틀리거나 힌트를 쓰면 별 2개, 그 밖에는 별 1개예요.</div>
           <div>📝 <b>보고서</b> 끝나면 내가 알아낸 미래 의식주 생활이 보고서로 정리돼요. 복사해서 제출할 수 있어요.</div>
         </div>
-        <p class="hint">※ 기술 내용은 「기술·가정」 교과서(생활 문화와 디지털 환경)를 바탕으로 했어요. 시간·코인·별은 게임 규칙이에요.</p>
+        <p class="hint">※ 기술 내용은 「기술·가정」 교과서(생활 문화와 디지털 환경)와 스마트 홈·3D 프린팅 수업 자료를 바탕으로 했어요. 시간·코인·별은 게임 규칙이에요.</p>
         <div class="row end"><button type="button" class="btn primary big" data-focus id="rulesGo">${first ? '⏱ 시작하기' : '닫기'}</button></div></div>` });
     $('rulesGo').onclick = U.closeModal;
   }

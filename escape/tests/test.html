@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>미래하우스 자동 시험</title>
+<style>
+  :root { --bg: #F7FAFC; --ink: #23313F; --muted: #5E6E80; --ok: #1F7A5C; --bad: #B4233C; --line: #D8E1EA; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 20px 16px 40px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  p { margin: 4px 0 12px; color: var(--muted); }
+  #summary { font-size: 1.15rem; font-weight: 800; padding: 10px 14px; border-radius: 12px; background: #FFFFFF; border: 2px solid var(--line); }
+  #summary.ok { border-color: var(--ok); color: var(--ok); }
+  #summary.bad { border-color: var(--bad); color: var(--bad); }
+  h2 { font-size: 1.05rem; margin: 18px 0 6px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { padding: 4px 0; border-bottom: 1px solid var(--line); }
+  li.ok::before { content: '✔ '; color: var(--ok); font-weight: 800; }
+  li.bad::before { content: '✘ '; color: var(--bad); font-weight: 800; }
+  li.skip::before { content: '– '; color: var(--muted); font-weight: 800; }
+  li small { display: block; color: var(--bad); white-space: pre-wrap; word-break: break-all; }
+  li.skip small { color: var(--muted); }
+  iframe { width: 1000px; height: 700px; border: 0; position: absolute; left: -10000px; top: 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>2045 미래하우스 탈출 · 자동 시험</h1>
+  <p>퍼즐 자료의 짝 맞음, 규칙(시간·별·코인·힌트·상점·직업), 저장 기록 다듬기, 전체 화면 흐름을 확인해요. 시험 전에 이 기기의 게임 기록을 따로 보관했다가 끝나면 그대로 되돌려 놓아요.</p>
+  <div id="summary" data-done="0">시험하는 중…</div>
+  <div id="out"></div>
+</main>
+<script>
+  window.__loadErrors = [];
+  window.addEventListener('error', e => { window.__loadErrors.push(String(e.message || e)); });
+</script>
+<script src="../js/data.js"></script>
+<script src="../js/engine.js"></script>
+<script src="tests.js"></script>
+</body>
+</html>

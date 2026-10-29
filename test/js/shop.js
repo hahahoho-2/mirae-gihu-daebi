@@ -26,7 +26,7 @@ const Shop = (() => {
       <div class="shop-grid">${MEASURES.filter(m => m.part === tab).map(m => { const own = !!s.owned[m.id], afford = s.coins >= m.cost; return `<div class="shop-item${own ? ' owned' : ''}">
           <div class="si-txt"><b><span class="risk ${m.risk}">${Mission.RISK[m.risk].icon} ${Mission.RISK[m.risk].name}</span> ${G.esc(m.name)}</b><small>${G.esc(m.note)}</small></div>
           <div class="si-buy"><span class="price">🪙 ${m.cost}</span>${own ? '<span class="own-tag">✔ 갖춤</span>' : `<button type="button" class="btn small primary" data-buy="${m.id}" ${can && afford ? '' : 'disabled'}>사기</button>`}</div></div>`; }).join('')}</div>
-      ${s.finished ? '<p class="hint warn">이번 판은 끝났어요. 「다시 하기」로 새 5분 미션을 시작해요.</p>' : ''}
+      ${s.finished ? '<p class="hint warn">이번 판은 끝났어요. 「다시 하기」로 새 3분 미션을 시작해요.</p>' : ''}
       ${stage === 'prepare' && fcDone && !s.finished ?`<div class="panel-actions"><span class="hint">${Mission.ready() ? '이번 시대 목표를 모두 채웠어요!' : '예산이 모자라면 예측을 보고 더 중요한 것부터 골라요.'}</span><button type="button" class="btn primary" id="shopSummer">☀️ 여름 맞이하기</button></div>` : ''}`;
     el.querySelectorAll('[data-stab]').forEach(b => b.onclick = () => { tab = b.dataset.stab; G.openPanel('shop'); });
     el.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => doBuy(b.dataset.buy));

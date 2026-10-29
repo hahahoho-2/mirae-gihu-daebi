@@ -617,14 +617,14 @@ const G = (() => {
         <button class="btn" type="button" id="mnPlaza">학급 광장 보기</button>
         <button class="btn" type="button" id="mnHelp">게임 방법</button>
         <button class="btn" type="button" id="mnTitle">처음 화면으로</button>
-        <button class="btn danger" type="button" id="mnReset">처음부터 다시 하기 (5분 새로)</button>
+        <button class="btn danger" type="button" id="mnReset">처음부터 다시 하기 (3분 새로)</button>
         <p class="hint">기록은 이 기기의 브라우저에 자동 저장돼요. 다른 기기에서 이어 하려면 섬 코드를 만들어 두세요.</p>
       </div>`;
       $('mnCode').onclick = () => openPanel('board', 'code');
       $('mnPlaza').onclick = () => { closePanel(); Main.showPlaza(); };
       $('mnHelp').onclick = () => openPanel('rules');
       $('mnTitle').onclick = () => { closePanel(); save(); Main.showTitle(); };
-      $('mnReset').onclick = async () => { if (await ask('지금 판을 그만두고 처음부터 다시 할까요? 5분 타이머도 새로 시작해요.', { ok: '다시 하기', danger: true })) restart({}); };
+      $('mnReset').onclick = async () => { if (await ask('지금 판을 그만두고 처음부터 다시 할까요? 3분 미션을 새로 시작해요.', { ok: '다시 하기', danger: true })) restart({}); };
     }
   });
 
@@ -634,12 +634,11 @@ const G = (() => {
     const s = newState({ name: old.name, color: old.color, pet: old.pet });
     s.region = opt.region || old.region;
     s.scenario = opt.scenario || old.scenario;
-    s.seenRules = true; s.started = true;
+    s.seenRules = true;
     closePanel();
     $('petBubble').hidden = true;
     start(s); save();
-    toast(`⏱ 새 5분 미션! ${s.region} · ${SCENARIOS[s.scenario].name}`, 'big');
-    setTimeout(goTarget, 400);
+    toast(`⚡ 새 3분 미션! ${s.region} · ${SCENARIOS[s.scenario].name}`, 'big');
   }
 
   /* ---------- 시작 ---------- */
@@ -665,7 +664,7 @@ const G = (() => {
       $('panelClose').onclick = closePanel;
       $('panel').addEventListener('click', e => { if (e.target.id === 'panel') closePanel(); });
       document.addEventListener('keydown', e => {
-        if (!S || $('screen-game').hidden) return;
+        if (!S || $('screen-game').hidden || Speed.isOpen()) return;
         if (e.key === 'Escape') { if (panelOpen()) closePanel(); return; }
         if (panelOpen() || dialogOpen()) return;
         if (e.target.matches('input, textarea, select')) return;
@@ -680,13 +679,8 @@ const G = (() => {
     }
     fitCamera();
     if (!raf) raf = requestAnimationFrame(tick);
-    // 처음 시작하면 게임 방법을 먼저 보여 줘요(닫으면 5분 타이머가 시작돼요)
-    setTimeout(() => {
-      if (!S) return;
-      if (!S.seenRules) openPanel('rules');
-      else if (S.finished) openPanel('final');
-      else hintForStep();
-    }, 500);
+    // ⚡ 3분 스피드 미션: 끝낸 판이면 결과, 아니면 시작 화면(지역·미래 고르기)을 보여 줘요
+    Speed.open();
   }
 
   return {

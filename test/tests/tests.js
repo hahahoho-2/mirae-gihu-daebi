@@ -175,14 +175,14 @@
     eq(L.pickFriends(many, { now: NOW }).length, L.MAX_LIVE);
   });
 
-  /* ---------- 5분 기후 대비 미션 ---------- */
-  section('5분 기후 대비 미션 (Mission)');
+  /* ---------- 기후 대비 공통 규칙 ---------- */
+  section('기후 대비 공통 규칙 (Mission: 대비 단계·용품·여름 날씨)');
   const stateFor = (region, scenario, chapter = 1) => { const s = G.newState({ name: '시험', color: 'peach', pet: 'bee' }); Object.assign(s, { region, scenario, chapter }); Mission.applyAll(s); return s; };
   const own = (s, ids) => { ids.forEach(id => { s.owned[id] = true; }); Mission.applyAll(s); return s; };
-  await test('새 판은 5분·30코인·1시대에서 시작하고, 규칙을 닫아야 시간이 흘러요', () => {
+  await test('새 판은 3분·1시대에서 시작하고, 시작 전에는 시간이 흐르지 않아요', () => {
     const s = G.newState({ name: '시험', color: 'peach', pet: 'bee' });
     eq([s.v, s.timeLeft, s.coins, s.chapter, s.quest, s.started, s.finished], [3, TIME_LIMIT, ERA_COINS[1], 1, 0, false, false]);
-    eq(TIME_LIMIT, 300, '5분');
+    eq(TIME_LIMIT, 180, '3분');
   });
   await test('폭염일수로 대비 단계를 정해요 (30일·50일 경계)', () => {
     eq([29.9, 30, 49.9, 50, 120].map(Mission.levelIndex), [0, 1, 1, 2, 2]);
@@ -279,8 +279,71 @@
     QUESTS.forEach(q => q.steps.forEach(st => ok(STATS.includes(st.stat), q.id + ' ' + st.stat)));
   });
 
+  /* ---------- ⚡ 3분 스피드 미션 ---------- */
+  section('⚡ 3분 스피드 미션 (Speed)');
+  const allIds = [...MEASURES.map(m => m.id), ...BAD_CARDS.map(b => b.id)];
+  await test('카드: 번호가 겹치지 않고, 의·식·주와 설명이 있어요', () => {
+    eq(new Set(allIds).size, allIds.length, '번호 중복');
+    allIds.forEach(id => { const c = Speed.cardOf(id); ok(c && PART_INFO[c.part] && c.name && c.note.length > 10, id); ok(['heat', 'rain', 'bad'].includes(c.kind), id + ' 종류'); });
+    eq(Speed.cardOf('nope'), null);
+  });
+  await test('시대별 카드: 대비 카드는 세 시대에 한 번씩, 도움 안 되는 카드는 시대마다 정한 수만큼 나와요', () => {
+    [7, 12345, 999999].forEach(seed => {
+      const d = Speed.decks(seed), all = [1, 2, 3].flatMap(e => d[e]);
+      [1, 2, 3].forEach(e => {
+        const k = kind => d[e].filter(id => Speed.cardOf(id).kind === kind).length;
+        eq([k('heat'), k('rain'), k('bad')], SPEED.deck[e], `${seed} ${e}시대`);
+      });
+      eq(new Set(all).size, all.length, '같은 카드가 두 번');
+      MEASURES.forEach(m => ok(all.includes(m.id), m.id + ' 빠짐'));
+      eq(Speed.decks(seed), d, '같은 섬이면 같은 카드');
+    });
+    ok(show(Speed.decks(1)) !== show(Speed.decks(2)), '판마다 순서가 달라요');
+  });
+  await test('목표: 대비 단계·시대가 높을수록 커지고, 그때까지 나온 카드 수를 넘지 않아요', () => {
+    [1, 2, 3].forEach(e => {
+      const o = Speed.offered(e);
+      [0, 1, 2].forEach(lv => { const t = Speed.target(lv, e); ok(t.heat >= 1 && t.rain >= 1 && t.heat <= o.heat && t.rain <= o.rain, `${e}시대 ${lv + 1}단계`); });
+      ok(Speed.target(2, e).heat >= Speed.target(1, e).heat && Speed.target(1, e).heat >= Speed.target(0, e).heat, `${e}시대 단계 순서`);
+    });
+    eq([Speed.offered(3).heat, Speed.offered(3).rain], [MEASURES.filter(m => m.risk === 'heat').length, MEASURES.filter(m => m.risk === 'rain').length], '모든 대비 카드');
+    eq(Speed.target(2, 3), { heat: 11, rain: 6 });
+  });
+  await test('정답 판정: 폭염·집중호우 대비는 그 종류, 도움 안 되는 행동은 🚫만 정답', () => {
+    MEASURES.forEach(m => { ok(Speed.judge(m.id, m.risk), m.id); ok(!Speed.judge(m.id, 'bad'), m.id + ' 🚫'); });
+    BAD_CARDS.forEach(b => { ok(Speed.judge(b.id, 'bad'), b.id); ok(!Speed.judge(b.id, 'heat') && !Speed.judge(b.id, 'rain'), b.id + ' 대비'); });
+    ok(!Speed.judge('c_white', null), '시간 초과는 오답');
+  });
+  await test('예측 플래시 정답(대비 단계)은 그 시대 그 미래의 폭염일수로 정해요', () => {
+    const want = { '용인시': { low: [0, 1, 1], high: [0, 1, 2] }, '서울특별시': { low: [1, 1, 1], high: [1, 2, 2] } };
+    Object.entries(want).forEach(([r, byS]) => Object.entries(byS).forEach(([sc, lv]) => eq([1, 2, 3].map(e => Speed.levelOf(e, stateFor(r, sc)).lv), lv, `${r} ${sc}`)));
+  });
+  await test('여름 5일: 폭염일은 ☀️, 집중호우일은 ☔ 대비가 목표만큼 있어야 버텨요', () => {
+    const s = stateFor('서울특별시', 'high'), t = Speed.target(Speed.levelOf(3, s).lv, 3);
+    const enough = Speed.summer(3, s, { heat: t.heat, rain: t.rain }), short = Speed.summer(3, s, { heat: t.heat - 1, rain: t.rain - 1 });
+    eq(enough.map(d => d.w), Mission.livePlan(3, s), '날씨는 기후 비율대로');
+    enough.forEach(d => eq(d.ok, d.w === 'heat' || d.w === 'storm' ? true : null, d.w));
+    short.forEach(d => eq(d.ok, d.w === 'heat' || d.w === 'storm' ? false : null, d.w + ' 모자람'));
+  });
+  await test('점수: 카드 10점, 1.5초 안이면 ⚡+5, 3콤보부터 🔥+5, 순위는 기본 점수 비율로', () => {
+    eq([Speed.cardPoints(3000, 1), Speed.cardPoints(1200, 1), Speed.cardPoints(3000, 3), Speed.cardPoints(900, 5)], [10, 15, 15, 20]);
+    const s = stateFor('용인시', 'low');
+    const days = [1, 2, 3].reduce((t, e) => t + Mission.livePlan(e, s).filter(w => w === 'heat' || w === 'storm').length, 0);
+    eq(Speed.maxBase(s), 3 * 20 + 26 * 10 + days * 10);
+    eq([Speed.rankOf(0.9).name, Speed.rankOf(0.7).name, Speed.rankOf(0.1).name], RANKS.map(r => r.name));
+  });
+
   /* ---------- 저장·섬 코드 ---------- */
-  section('저장 기록 다듬기 (5분 미션판)');
+  section('저장 기록 다듬기');
+  await test('3분 미션 결과 기록의 이상한 값은 버리거나 범위로 잘라요', () => {
+    const s = Plaza.cleanState({ k: 'yeoul', v: 3, name: '나래', speed: { done: true, timeUp: 'y', score: 1e9, bonus: -4, best: 99, right: 'x', total: 26, base: 390, max: 430, left: 999,
+      wrong: ['c_white', 'hack', 7, 'x_dark'], eras: { 1: { lv: 9, fc: 'y', heat: [99, '<b>'], rain: [1, 1], right: 7, total: 8, days: [['<x>', 5], ['heat', 1], 'bad'] }, 7: {} } } });
+    eq([s.speed.score, s.speed.bonus, s.speed.best, s.speed.right, s.speed.left, s.speed.timeUp], [9999, 0, 40, 0, TIME_LIMIT, true]);
+    eq(s.speed.wrong, ['c_white', 'x_dark'], '아는 카드만');
+    eq(Object.keys(s.speed.eras), ['1']);
+    eq(s.speed.eras['1'], { lv: LEVELS.length - 1, fc: 1, heat: [20, 0], rain: [1, 1], right: 7, total: 8, days: [['sunny', 1], ['heat', 1], ['sunny', -1]] });
+    eq(Plaza.cleanState({ k: 'yeoul', v: 3, name: '나래', speed: { done: 'yes', score: 5 } }).speed, null, '끝나지 않은 판은 버려요');
+  });
   await test('산 용품·시간·시대 기록의 이상한 값은 버리거나 범위로 잘라요', () => {
     const s = Plaza.cleanState({ k: 'yeoul', v: 3, name: '나래', coins: 1e12, timeLeft: 9999, started: 1, finished: 'y', timeBonus: 500,
       owned: { c_white: true, hack: true, h_roof: 'yes', __proto__: { polluted: 1 } },
@@ -291,7 +354,7 @@
     eq(s.eras['1'], { fc: { answer: 3, correct: true }, started: true, done: true, next: false, days: [{ w: 'sunny', c: [['의', 1], ['식', 1]] }] });
     eq(({}).polluted, undefined, '오염');
   });
-  await test('예전 판의 섬 코드는 같은 캐릭터로 5분 미션을 처음부터 해요', () => {
+  await test('예전 판의 섬 코드는 같은 캐릭터로 미션을 처음부터 해요', () => {
     const s = Plaza.cleanState({ k: 'yeoul', v: 2, name: '옛날', color: 'mint', chapter: 3, quest: 9, coins: 500, owned: { c_white: true }, timeLeft: 10 });
     eq([s.name, s.color, s.chapter, s.quest, s.coins, s.owned, s.timeLeft, s.started], ['옛날', 'mint', 1, 0, ERA_COINS[1], {}, TIME_LIMIT, false]);
   });

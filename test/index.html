@@ -18,7 +18,7 @@
   <div class="title-card">
     <p class="kicker">미래 기후에 대비한 생활문화 탐색 RPG</p>
     <h1 class="logo">여울섬 <span>기후 생활 RPG</span></h1>
-    <p class="title-sub">⏱ 5분 미션! 기상청 기후 전망 자료로 미래 여름을 예측하고, 예산 안에서 먹거리·옷·집을 대비해 2030년대·2050년대·2090년대 여름을 이겨 내요.</p>
+    <p class="title-sub">⚡ 3분 스피드 미션! 기상청 기후 전망 그래프로 미래 여름을 예측하고, 날아오는 의·식·주 대비 카드를 빠르게 골라 2030년대·2050년대·2090년대 여름을 버텨요.</p>
     <div class="title-btns">
       <button type="button" id="btnContinue" class="btn primary big" hidden>▶ 이어하기</button>
       <button type="button" id="btnNew" class="btn big">🌱 새로 시작</button>
@@ -66,7 +66,7 @@
       <span class="hq-top"><small id="hudStage"></small><span id="hudSteps" class="hq-steps" aria-hidden="true"></span></span>
       <b id="hudQuestTitle"></b><span id="hudQuestStep" class="hq-step"></span>
     </button>
-    <div id="hudTimer" class="hud-timer" role="timer" aria-live="off"><span aria-hidden="true">⏱</span><b id="hudTime">5:00</b><small id="hudTimerNote">남은 시간</small></div>
+    <div id="hudTimer" class="hud-timer" role="timer" aria-live="off"><span aria-hidden="true">⏱</span><b id="hudTime">3:00</b><small id="hudTimerNote">남은 시간</small></div>
     <div class="hud-coins" title="여울 코인(게임 속 돈이에요)"><span aria-hidden="true">🪙</span><b id="hudCoinNum">0</b><small>코인</small></div>
   </header>
   <div class="world-wrap">
@@ -93,6 +93,7 @@
       <div id="panelBody" class="panel-body"></div>
     </div>
   </div>
+  <div id="speed" class="speed" hidden></div>
 </section>
 
 <!-- 학급 광장 -->
@@ -149,6 +150,7 @@
 <script src="js/build.js"></script>
 <script src="js/mission.js"></script>
 <script src="js/shop.js"></script>
+<script src="js/speed.js"></script>
 <script src="js/plaza.js"></script>
 <script src="js/live-config.js"></script>
 <script src="js/live.js"></script>

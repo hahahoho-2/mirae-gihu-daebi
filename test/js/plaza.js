@@ -129,6 +129,27 @@ const Plaza = (() => {
     });
     return out;
   }
+  // ⚡ 3분 스피드 미션의 끝난 판 기록(진행 중인 판은 저장하지 않아요)
+  function cleanSpeed(o) {
+    if (!isObj(o) || o.done !== true) return null;
+    const ids = new Set([...MEASURES.map(m => m.id), ...BAD_CARDS.map(b => b.id)]);
+    const pair = v => [int(arr(v)[0], 0, 20, 0), int(arr(v)[1], 0, 20, 0)];
+    const eras = {};
+    ['1', '2', '3'].forEach(k => {
+      const e = isObj(o.eras) ? o.eras[k] : null;
+      if (!isObj(e)) return;
+      eras[k] = {
+        lv: int(e.lv, 0, LEVELS.length - 1, 0), fc: e.fc ? 1 : 0, heat: pair(e.heat), rain: pair(e.rain),
+        right: int(e.right, 0, 20, 0), total: int(e.total, 0, 20, 0),
+        days: arr(e.days).slice(0, SUMMER_LIVE_DAYS).map(d => [pick(arr(d)[0], WEATHER, 'sunny'), int(arr(d)[1], -1, 1, -1)])
+      };
+    });
+    return {
+      done: true, timeUp: !!o.timeUp, score: int(o.score, 0, 9999, 0), bonus: int(o.bonus, 0, TIME_LIMIT, 0), best: int(o.best, 0, 40, 0),
+      right: int(o.right, 0, 40, 0), total: int(o.total, 0, 40, 0), base: int(o.base, 0, 9999, 0), max: int(o.max, 0, 9999, 0),
+      left: int(o.left, 0, TIME_LIMIT, 0), eras, wrong: arr(o.wrong).filter(x => typeof x === 'string' && ids.has(x)).slice(0, 40)
+    };
+  }
   const cleanOwned = o => { const out = {}; if (isObj(o)) MEASURES.forEach(m => { if (o[m.id] === true) out[m.id] = true; }); return out; };
   const cleanTable = t => Array.from({ length: TABLE_SLOTS }, (_, i) => { const v = arr(t)[i]; return typeof v === 'string' && RECIPES.some(r => r.id === v) ? v : null; });
   // 섬 코드 → 게임 상태 전체 (다른 기기에서 이어 하기)
@@ -152,6 +173,7 @@ const Plaza = (() => {
     s.coins = v3 ? int(raw.coins, 0, 99999, ERA_COINS[1]) : ERA_COINS[1];
     s.owned = v3 ? cleanOwned(raw.owned) : {};
     s.eras = v3 ? cleanEras(raw.eras) : {};
+    s.speed = v3 ? cleanSpeed(raw.speed) : null;
     s.seenRules = v3 && !!raw.seenRules;
     s.timeLeft = v3 ? int(raw.timeLeft, 0, TIME_LIMIT, TIME_LIMIT) : TIME_LIMIT;
     s.started = v3 && !!raw.started;

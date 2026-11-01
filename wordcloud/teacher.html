@@ -210,7 +210,7 @@
     try {
       const d = await wcRpc('wc_list', { p_code: session.code });
       $('net').textContent = '';
-      if (!d) { save(null); location.reload(); return; }
+      if (!d) { save(null); location.replace(location.pathname); return; }
       last = d;
       $('question').textContent = d.question;
       $('stats').textContent = `참여 ${d.participants}명 · 의견 ${d.total}개`;
@@ -274,7 +274,7 @@
   async function act(name, body = {}) {
     try {
       if (await wcRpc(name, { p_code: session.code, p_secret: session.secret, ...body })) return true;
-      toast('이 브라우저에는 이 활동의 관리 권한이 없어요. 활동을 처음 만든 브라우저에서 눌러 주세요.');
+      toast('이 화면에는 관리 권한이 없어요. PPT의 워드클라우드 화면 링크나 활동을 처음 만든 브라우저에서 열어 주세요.');
     } catch (e) {
       toast('연결이 불안정해요. 잠시 뒤 다시 눌러 주세요.');
     }
@@ -340,8 +340,8 @@
     session = { code: linkCode, secret: linkKey }; save(session);
     history.replaceState(null, '', location.search);
     goLive();
-  } else if (linkCode && saved && saved.code === linkCode) {
-    session = saved; goLive();
+  } else if (linkCode) {
+    session = saved && saved.code === linkCode ? saved : { code: linkCode, secret: '' }; goLive();  // 관리 코드가 없으면 보기만 된다
   } else {
     if (saved && saved.code) $('resume').hidden = false;
     $('start').hidden = false;

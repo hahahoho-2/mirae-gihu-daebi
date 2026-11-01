@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>워드클라우드 교사 화면</title>
+<style>
+  :root { --bg:#0F172A; --panel:#1E293B; --line:#334155; --ink:#F8FAFC; --sub:#AAB7C8; --main:#FB923C; }
+  * { box-sizing:border-box; }
+  html, body { height:100%; margin:0; }
+  body { background:var(--bg); color:var(--ink); font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
+  button { font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:9px 12px; cursor:pointer; }
+  button:hover { border-color:var(--main); }
+  button.main { background:#C2410C; border-color:#C2410C; font-weight:700; }
+  input { font:inherit; width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--line); background:#0B1222; color:var(--ink); }
+
+  #start { max-width:640px; margin:0 auto; padding:12vh 24px; }
+  #start h1 { font-size:34px; margin:0 0 10px; }
+  #start p { color:var(--sub); line-height:1.7; word-break:keep-all; }
+  #start label { display:block; font-weight:700; margin:22px 0 8px; }
+  #start .btns { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
+
+  #live { height:100%; display:grid; grid-template-columns:1fr 268px; grid-template-rows:auto 1fr; }
+  #live.noDock { grid-template-columns:1fr; }
+  #live.noDock #dock { display:none; }
+  #question { grid-column:1; padding:18px 28px 6px; font-size:clamp(20px,2.4vw,32px); font-weight:800; word-break:keep-all; }
+  #stage { grid-column:1; position:relative; overflow:hidden; min-height:0; }
+  #dock { grid-column:2; grid-row:1 / span 2; background:var(--panel); border-left:1px solid var(--line); padding:16px; display:flex; flex-direction:column; gap:10px; overflow:auto; }
+  #qr { background:#fff; border-radius:12px; padding:10px; line-height:0; }
+  #qr svg { width:100%; height:auto; display:block; }
+  #roomCode { text-align:center; font-size:26px; font-weight:800; letter-spacing:.08em; }
+  #stats { text-align:center; color:var(--sub); font-size:15px; }
+  #net { text-align:center; color:#FCA5A5; font-size:13px; min-height:18px; }
+  #dock .tools { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:auto; }
+  #dock .tools button { font-size:14px; padding:8px 6px; }
+  #showDock { position:absolute; right:12px; top:12px; display:none; font-size:14px; opacity:.75; }
+  #live.noDock #showDock { display:block; }
+
+  .word { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); white-space:nowrap; font-weight:800; line-height:1.1; transition:left .7s ease, top .7s ease, font-size .7s ease, opacity .5s ease; }
+  .word.new { opacity:0; }
+  #empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:clamp(20px,2.6vw,34px); text-align:center; padding:24px; word-break:keep-all; }
+
+  #manage { position:fixed; inset:0; background:rgba(2,6,23,.6); display:none; align-items:center; justify-content:center; padding:20px; z-index:10; }
+  #manage.on { display:flex; }
+  #manageBox { width:min(620px,100%); max-height:82vh; overflow:auto; background:var(--panel); border-radius:14px; padding:20px; }
+  #manageBox h2 { margin:0 0 4px; font-size:22px; }
+  #manageBox h3 { margin:20px 0 8px; font-size:16px; color:var(--sub); }
+  .line { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); }
+  .line span { flex:1; word-break:break-all; }
+  .line b { color:var(--main); min-width:34px; text-align:right; }
+  @media (max-width:860px) { #live { grid-template-columns:1fr; grid-template-rows:auto 1fr auto; } #dock { grid-column:1; grid-row:3; border-left:0; border-top:1px solid var(--line); flex-direction:row; flex-wrap:wrap; align-items:center; } #qr { width:120px; } #dock .tools { margin-top:0; flex:1; } }
+</style>
+</head>
+<body>
+
+<section id="start" hidden>
+  <h1>실시간 워드클라우드</h1>
+  <p>학생이 QR로 접속해 적은 생각이 이 화면에 바로 모입니다. 같은 생각이 많을수록 글자가 커지고 가운데로 옵니다.</p>
+  <label for="newQ">학생에게 보여 줄 질문</label>
+  <input id="newQ" maxlength="80" value="무엇이 우리의 옷·밥·집을 바꿨을까? 한 단어로!">
+  <div class="btns">
+    <button class="main" id="create">활동 시작</button>
+    <button id="resume" hidden>이전 활동 이어서</button>
+  </div>
+  <p id="startMsg" role="status"></p>
+</section>
+
+<section id="live" hidden>
+  <div id="question"></div>
+  <div id="stage">
+    <div id="empty">학생들의 생각을 기다리고 있어요</div>
+    <button id="showDock">QR·메뉴 보기</button>
+  </div>
+  <aside id="dock">
+    <div id="qr" aria-label="학생 접속 QR 코드"></div>
+    <div id="roomCode"></div>
+    <div id="stats" aria-live="polite">참여 0명 · 의견 0개</div>
+    <div id="net" role="status"></div>
+    <div class="tools">
+      <button id="toggleOpen">입력 잠그기</button>
+      <button id="openManage">의견 관리</button>
+      <button id="editQ">질문 바꾸기</button>
+      <button id="clear">전체 지우기</button>
+      <button id="full">전체 화면</button>
+      <button id="hideDock">QR 숨기기</button>
+      <button id="finish" style="grid-column:1 / span 2">활동 끝내기(기록 삭제)</button>
+    </div>
+  </aside>
+</section>
+
+<div id="manage" role="dialog" aria-modal="true" aria-label="의견 관리">
+  <div id="manageBox">
+    <h2>의견 관리</h2>
+    <h3>화면에 보이는 의견</h3><div id="shownList"></div>
+    <h3>숨긴 의견</h3><div id="hiddenList"></div>
+    <div style="margin-top:16px"><button id="closeManage">닫기</button></div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="qrcode.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const RAINBOW = ['#FF5C5C', '#FF9A3D', '#FFE14A', '#4ADE80', '#38BDF8', '#818CF8', '#D67BFF'];
+  const FONT = '"Pretendard","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif';
+  const STORE = 'wc_teacher';
+
+  let session = null;   // { code, secret }
+  let last = null;      // 마지막 집계
+  let lastSig = '';
+  let timer = null;
+  const colorOf = new Map();
+  const spans = new Map();
+  const measure = document.createElement('canvas').getContext('2d');
+
+  const load = () => { try { return JSON.parse(localStorage.getItem(STORE)); } catch (e) { return null; } };
+  const save = (v) => { try { v ? localStorage.setItem(STORE, JSON.stringify(v)) : localStorage.removeItem(STORE); } catch (e) { /* 저장 불가: 새로고침 전까지만 유지 */ } };
+
+  function assignColors(items) {
+    [...items].sort((a, b) => a.f - b.f).forEach((it) => {
+      if (!colorOf.has(it.k)) colorOf.set(it.k, colorOf.size % RAINBOW.length);
+    });
+  }
+
+  // 큰 글자부터 가운데에서 나선형으로 빈자리를 찾는다.
+  function place(items, W, H, scale) {
+    const max = items[0].n;
+    const base = Math.min(W, H);
+    const big = Math.min(Math.max(base * 0.24, 54), 190) * scale;
+    const small = Math.min(Math.max(base * 0.06, 24), 46) * scale;
+    const boxes = [], out = [];
+    const hit = (b) => boxes.some((o) => b.x < o.x + o.w && b.x + b.w > o.x && b.y < o.y + o.h && b.y + b.h > o.y);
+    for (const it of items) {
+      let size = max === 1 ? small * 1.5 : small + (big - small) * Math.sqrt((it.n - 1) / (max - 1));
+      measure.font = `800 ${size}px ${FONT}`;
+      let w = measure.measureText(it.t).width;
+      if (w > W * 0.92) { size *= (W * 0.92) / w; w = W * 0.92; }
+      const h = size * 1.12, pad = Math.max(6, size * 0.1);
+      let done = false;
+      for (let t = 0; t < 900 && !done; t += 0.22) {
+        const r = t * Math.max(5, base * 0.012);
+        const cx = W / 2 + r * Math.cos(t) * (W / H > 1 ? Math.min(W / H, 2) : 1);
+        const cy = H / 2 + r * Math.sin(t);
+        const b = { x: cx - w / 2 - pad, y: cy - h / 2 - pad, w: w + pad * 2, h: h + pad * 2 };
+        if (b.x < 0 || b.y < 0 || b.x + b.w > W || b.y + b.h > H || hit(b)) continue;
+        boxes.push(b); out.push({ it, x: cx, y: cy, size }); done = true;
+      }
+      if (!done) return null;
+    }
+    return out;
+  }
+
+  function draw() {
+    const items = last ? last.items : [];
+    $('empty').hidden = items.length > 0;
+    $('empty').style.display = items.length ? 'none' : 'flex';
+    const stage = $('stage'), W = stage.clientWidth, H = stage.clientHeight;
+    if (!W || !H) return;
+    assignColors(items);
+    let spots = [];
+    if (items.length) {
+      for (const s of [1, .9, .8, .7, .6, .5, .42, .35, .28, .22]) { spots = place(items, W, H, s); if (spots) break; }
+      spots = spots || [];
+    }
+    const keep = new Set();
+    for (const { it, x, y, size } of spots) {
+      keep.add(it.k);
+      let el = spans.get(it.k);
+      const fresh = !el;
+      if (fresh) {
+        el = document.createElement('div'); el.className = 'word new';
+        el.style.color = RAINBOW[colorOf.get(it.k)];
+        el.style.left = `${x}px`; el.style.top = `${y}px`; el.style.fontSize = `${size * 0.7}px`;
+        stage.append(el); spans.set(it.k, el);
+        el.getBoundingClientRect();
+      }
+      el.textContent = it.t;
+      el.title = `${it.n}명`;
+      el.classList.remove('new');
+      el.style.left = `${x}px`; el.style.top = `${y}px`; el.style.fontSize = `${size}px`;
+      el.style.zIndex = String(it.n);
+    }
+    for (const [k, el] of spans) {
+      if (!keep.has(k)) { el.classList.add('new'); setTimeout(() => el.remove(), 500); spans.delete(k); }
+    }
+  }
+
+  async function poll() {
+    if (!session) return;
+    try {
+      const d = await wcRpc('wc_list', { p_code: session.code });
+      $('net').textContent = '';
+      if (!d) { save(null); location.reload(); return; }
+      last = d;
+      $('question').textContent = d.question;
+      $('stats').textContent = `참여 ${d.participants}명 · 의견 ${d.total}개`;
+      $('toggleOpen').textContent = d.is_open ? '입력 잠그기' : '입력 열기';
+      const sig = JSON.stringify(d.items.map((i) => [i.k, i.n, i.t]));
+      if (sig !== lastSig) { lastSig = sig; draw(); if ($('manage').classList.contains('on')) renderManage(); }
+    } catch (e) {
+      $('net').textContent = '연결 확인 중…';
+    }
+  }
+
+  function goLive() {
+    $('start').hidden = true; $('live').hidden = false;
+    const url = new URL(`index.html?r=${session.code}`, location.href).href;
+    const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+    $('qr').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+    $('roomCode').textContent = session.code.replace(/(\d{3})(\d{3})/, '$1 $2');
+    poll(); clearInterval(timer); timer = setInterval(poll, 1500);
+  }
+
+  async function createRoom() {
+    const q = $('newQ').value.trim();
+    if (!q) { $('startMsg').textContent = '질문을 적어 주세요.'; return; }
+    $('create').disabled = true;
+    try {
+      const r = await wcRpc('wc_create_room', { p_question: q });
+      if (!r.ok) { $('startMsg').textContent = '지금은 활동을 만들 수 없어요. 잠시 뒤 다시 눌러 주세요.'; return; }
+      session = { code: r.code, secret: r.secret }; save(session); goLive();
+    } catch (e) {
+      $('startMsg').textContent = '서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.';
+    } finally { $('create').disabled = false; }
+  }
+
+  async function renderManage() {
+    const rows = (list, label, hide) => {
+      const box = document.createElement('div');
+      if (!list.length) { box.textContent = '없음'; box.style.color = 'var(--sub)'; return box; }
+      list.forEach((it) => {
+        const line = document.createElement('div'); line.className = 'line';
+        const t = document.createElement('span'); t.textContent = it.t;
+        const n = document.createElement('b'); n.textContent = `${it.n}명`;
+        const b = document.createElement('button'); b.textContent = label;
+        b.onclick = async () => {
+          await wcRpc('wc_set_hidden', { p_code: session.code, p_secret: session.secret, p_key: it.k, p_hidden: hide });
+          await poll(); renderManage();
+        };
+        line.append(t, n, b); box.append(line);
+      });
+      return box;
+    };
+    const hidden = (await wcRpc('wc_hidden', { p_code: session.code, p_secret: session.secret })) || [];
+    $('shownList').replaceChildren(rows(last ? last.items : [], '숨기기', true));
+    $('hiddenList').replaceChildren(rows(hidden, '되돌리기', false));
+  }
+
+  $('create').onclick = createRoom;
+  $('resume').onclick = () => { session = load(); goLive(); };
+  $('openManage').onclick = () => { $('manage').classList.add('on'); renderManage(); };
+  $('closeManage').onclick = () => $('manage').classList.remove('on');
+  $('toggleOpen').onclick = async () => {
+    await wcRpc('wc_set_room', { p_code: session.code, p_secret: session.secret, p_question: last.question, p_open: !last.is_open });
+    poll();
+  };
+  $('editQ').onclick = async () => {
+    const q = prompt('새 질문을 적어 주세요.', last ? last.question : '');
+    if (q && q.trim()) { await wcRpc('wc_set_room', { p_code: session.code, p_secret: session.secret, p_question: q.trim(), p_open: last.is_open }); poll(); }
+  };
+  $('clear').onclick = async () => {
+    if (!confirm('지금까지 모인 의견을 모두 지울까요? 되돌릴 수 없습니다.')) return;
+    await wcRpc('wc_clear', { p_code: session.code, p_secret: session.secret });
+    colorOf.clear(); poll();
+  };
+  $('finish').onclick = async () => {
+    if (!confirm('활동을 끝내고 이 방의 기록을 모두 삭제할까요? 되돌릴 수 없습니다.')) return;
+    await wcRpc('wc_delete_room', { p_code: session.code, p_secret: session.secret });
+    save(null); location.reload();
+  };
+  $('full').onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen());
+  $('hideDock').onclick = () => { $('live').classList.add('noDock'); requestAnimationFrame(draw); };
+  $('showDock').onclick = () => { $('live').classList.remove('noDock'); requestAnimationFrame(draw); };
+  new ResizeObserver(() => draw()).observe($('stage'));
+
+  const saved = load();
+  if (saved && saved.code) $('resume').hidden = false;
+  $('start').hidden = false;
+</script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>우리 반 워드클라우드</title>
+<style>
+  :root { --bg:#EEF2F7; --card:#fff; --ink:#1E293B; --sub:#5B6B7F; --main:#C2410C; --line:#CBD5E1; --ok:#166534; --bad:#B91C1C; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--ink); font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif; display:flex; align-items:flex-start; justify-content:center; padding:24px 16px; }
+  main { width:100%; max-width:620px; background:var(--card); border-radius:20px; padding:28px 24px; box-shadow:0 6px 24px rgba(15,23,42,.08); }
+  .eyebrow { margin:0 0 10px; color:var(--main); font-weight:700; font-size:15px; }
+  h1 { margin:0 0 20px; font-size:26px; line-height:1.4; word-break:keep-all; }
+  label { display:block; font-weight:700; margin-bottom:8px; }
+  input { width:100%; font:inherit; font-size:22px; padding:14px 16px; border:2px solid var(--line); border-radius:12px; color:var(--ink); background:#fff; }
+  input:focus { outline:none; border-color:var(--main); }
+  .row { display:flex; justify-content:space-between; color:var(--sub); font-size:14px; margin-top:6px; }
+  button { width:100%; margin-top:14px; font:inherit; font-size:20px; font-weight:700; padding:14px; color:#fff; background:var(--main); border:0; border-radius:12px; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  .hint { margin:16px 0 0; color:var(--sub); font-size:15px; line-height:1.6; word-break:keep-all; }
+  #msg { min-height:26px; margin:14px 0 0; font-weight:700; word-break:keep-all; }
+  #msg.ok { color:var(--ok); } #msg.bad { color:var(--bad); }
+  #mineWrap h2 { font-size:15px; margin:22px 0 8px; color:var(--sub); }
+  #mine { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:8px; }
+  #mine li { background:#FFEDD5; color:#7C2D12; padding:6px 12px; border-radius:999px; font-size:16px; }
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">우리 반 워드클라우드</p>
+
+  <section id="join" hidden>
+    <h1>방 번호를 입력해 주세요</h1>
+    <form id="joinForm">
+      <label for="code">선생님 화면의 6자리 번호</label>
+      <input id="code" inputmode="numeric" maxlength="6" autocomplete="off">
+      <button>들어가기</button>
+    </form>
+  </section>
+
+  <section id="write" hidden>
+    <h1 id="q">질문을 불러오는 중이에요</h1>
+    <form id="writeForm">
+      <label for="text">나의 생각</label>
+      <input id="text" maxlength="20" autocomplete="off" enterkeyhint="send">
+      <div class="row"><span id="left">5개까지 보낼 수 있어요</span><span id="count">0 / 20</span></div>
+      <button id="send">보내기</button>
+    </form>
+    <p id="msg" role="status" aria-live="polite"></p>
+    <p class="hint">이름이나 연락처는 쓰지 말아요. 같은 생각을 쓴 친구가 많을수록 화면에서 글자가 커져요.</p>
+    <div id="mineWrap" hidden><h2>내가 보낸 생각</h2><ul id="mine"></ul></div>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const MESSAGES = {
+    room: '방 번호를 찾을 수 없어요. 선생님 화면의 번호를 확인해 주세요.',
+    closed: '지금은 입력이 닫혀 있어요.',
+    length: '1~20자로 적어 주세요.',
+    personal: '연락처나 인터넷 주소는 쓰지 말아 주세요.',
+    filtered: '다른 표현으로 바꿔 볼까요?',
+    limit: '생각은 5개까지 보낼 수 있어요.',
+    fast: '잠깐만요, 2초 뒤에 다시 보내 주세요.',
+    duplicate: '이미 보낸 생각이에요.',
+    full: '이번 활동은 입력이 가득 찼어요.',
+  };
+
+  function deviceId() {
+    const make = () => ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+    try {
+      let id = localStorage.getItem('wc_device');
+      if (!id) { id = make(); localStorage.setItem('wc_device', id); }
+      return id;
+    } catch (e) { return make(); }
+  }
+  const device = deviceId();
+  let room = new URLSearchParams(location.search).get('r') || '';
+
+  function say(text, kind) { $('msg').textContent = text; $('msg').className = kind || ''; }
+
+  function showJoin(note) {
+    $('write').hidden = true; $('join').hidden = false;
+    if (note) $('code').value = '';
+  }
+
+  let isOpen = true;
+  async function refreshRoom() {
+    try {
+      const r = await wcRpc('wc_room', { p_code: room });
+      if (!r) { showJoin(true); return false; }
+      $('q').textContent = r.question;
+      isOpen = r.is_open;
+      $('send').disabled = !isOpen;
+      if (!isOpen) say(MESSAGES.closed, 'bad');
+      else if ($('msg').textContent === MESSAGES.closed) say('');
+      return true;
+    } catch (e) { return true; }
+  }
+
+  async function enter() {
+    $('join').hidden = true; $('write').hidden = false;
+    if (await refreshRoom()) { $('text').focus(); setInterval(refreshRoom, 8000); }
+  }
+
+  $('joinForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    room = $('code').value.replace(/\D/g, '');
+    if (room.length === 6) { history.replaceState(null, '', `?r=${room}`); enter(); }
+  });
+
+  $('text').addEventListener('input', () => { $('count').textContent = `${$('text').value.length} / 20`; });
+
+  $('writeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = $('text').value.trim();
+    if (!text) { say(MESSAGES.length, 'bad'); return; }
+    $('send').disabled = true;
+    try {
+      const r = await wcRpc('wc_submit', { p_code: room, p_device: device, p_text: text });
+      if (r.ok) {
+        say('보냈어요! 화면을 확인해 보세요.', 'ok');
+        const li = document.createElement('li'); li.textContent = text;
+        $('mine').append(li); $('mineWrap').hidden = false;
+        $('text').value = ''; $('count').textContent = '0 / 20';
+        $('left').textContent = r.remaining > 0 ? `${r.remaining}개 더 보낼 수 있어요` : '5개를 모두 보냈어요';
+      } else {
+        say(MESSAGES[r.reason] || '다시 시도해 주세요.', 'bad');
+        if (r.reason === 'room') showJoin(true);
+      }
+    } catch (err) {
+      say('연결이 불안정해요. 다시 눌러 주세요.', 'bad');
+    }
+    setTimeout(() => { $('send').disabled = !isOpen; }, 1200);
+  });
+
+  if (/^\d{6}$/.test(room)) enter(); else showJoin();
+</script>
+</body>
+</html>

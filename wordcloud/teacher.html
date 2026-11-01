@@ -274,7 +274,7 @@
   async function act(name, body = {}) {
     try {
       if (await wcRpc(name, { p_code: session.code, p_secret: session.secret, ...body })) return true;
-      toast('이 화면에는 관리 권한이 없어요. PPT의 워드클라우드 화면 링크나 활동을 처음 만든 브라우저에서 열어 주세요.');
+      toast('이 화면에는 관리 권한이 없어요. 교사 전용 바로가기나 활동을 처음 만든 브라우저에서 열어 주세요.');
     } catch (e) {
       toast('연결이 불안정해요. 잠시 뒤 다시 눌러 주세요.');
     }

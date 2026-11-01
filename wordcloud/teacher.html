@@ -318,17 +318,34 @@
     if (yes && await act('wc_clear')) { colorOf.clear(); poll(); toast('의견을 모두 지웠어요.'); }
   };
   $('finish').onclick = async () => {
-    const yes = await ask({ title: '활동을 끝낼까요?', body: '이 활동의 질문과 의견이 서버에서 모두 삭제되고 되돌릴 수 없습니다. QR도 더 이상 쓸 수 없습니다.', ok: '끝내고 삭제', danger: true });
-    if (yes && await act('wc_delete_room')) { save(null); location.reload(); }
+    const fixed = last && last.is_fixed;
+    const body = fixed
+      ? '모인 의견이 서버에서 모두 삭제되고 되돌릴 수 없습니다. PPT의 QR은 다음 수업에도 그대로 쓸 수 있습니다.'
+      : '이 활동의 질문과 의견이 서버에서 모두 삭제되고 되돌릴 수 없습니다. QR도 더 이상 쓸 수 없습니다.';
+    const yes = await ask({ title: '활동을 끝낼까요?', body, ok: '끝내고 삭제', danger: true });
+    if (!yes || !await act('wc_delete_room')) return;
+    if (fixed) { colorOf.clear(); poll(); toast('의견을 모두 지웠어요. QR은 다음 수업에도 쓸 수 있어요.'); }
+    else { save(null); location.reload(); }
   };
   $('full').onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen());
   $('hideDock').onclick = () => { $('live').classList.add('noDock'); requestAnimationFrame(draw); };
   $('showDock').onclick = () => { $('live').classList.remove('noDock'); requestAnimationFrame(draw); };
   new ResizeObserver(() => draw()).observe($('stage'));
 
+  // PPT의 교사 링크(teacher.html?r=방번호#k=관리코드)로 열면 그 방으로 바로 들어간다. 관리 코드는 주소창에 남기지 않는다.
   const saved = load();
-  if (saved && saved.code) $('resume').hidden = false;
-  $('start').hidden = false;
+  const linkCode = new URLSearchParams(location.search).get('r');
+  const linkKey = new URLSearchParams(location.hash.slice(1)).get('k');
+  if (linkCode && linkKey) {
+    session = { code: linkCode, secret: linkKey }; save(session);
+    history.replaceState(null, '', location.search);
+    goLive();
+  } else if (linkCode && saved && saved.code === linkCode) {
+    session = saved; goLive();
+  } else {
+    if (saved && saved.code) $('resume').hidden = false;
+    $('start').hidden = false;
+  }
 </script>
 </body>
 </html>

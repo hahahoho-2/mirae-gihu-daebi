@@ -49,6 +49,15 @@
   .line { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); }
   .line span { flex:1; word-break:break-all; }
   .line b { color:var(--main); min-width:34px; text-align:right; }
+  button.danger { background:#B91C1C; border-color:#B91C1C; font-weight:700; }
+  #ask { position:fixed; inset:0; background:rgba(2,6,23,.72); display:none; align-items:center; justify-content:center; padding:20px; z-index:20; }
+  #ask.on { display:flex; }
+  #askBox { width:min(480px,100%); background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px; }
+  #askBox h2 { margin:0 0 8px; font-size:21px; word-break:keep-all; }
+  #askBox p { margin:0 0 14px; color:var(--sub); line-height:1.6; word-break:keep-all; }
+  #askBox .btns { display:flex; justify-content:flex-end; gap:10px; margin-top:16px; }
+  #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); max-width:min(560px,90vw); background:#F8FAFC; color:#0F172A; font-weight:700; padding:12px 18px; border-radius:10px; z-index:30; display:none; word-break:keep-all; text-align:center; }
+  #toast.on { display:block; }
   @media (max-width:860px) { #live { grid-template-columns:1fr; grid-template-rows:auto 1fr auto; } #dock { grid-column:1; grid-row:3; border-left:0; border-top:1px solid var(--line); flex-direction:row; flex-wrap:wrap; align-items:center; } #qr { width:120px; } #dock .tools { margin-top:0; flex:1; } }
 </style>
 </head>
@@ -97,6 +106,16 @@
     <div style="margin-top:16px"><button id="closeManage">닫기</button></div>
   </div>
 </div>
+
+<div id="ask" role="alertdialog" aria-modal="true" aria-labelledby="askTitle" aria-describedby="askBody">
+  <div id="askBox">
+    <h2 id="askTitle"></h2>
+    <p id="askBody"></p>
+    <input id="askInput" maxlength="80" aria-label="새 질문" hidden>
+    <div class="btns"><button id="askCancel">취소</button><button id="askOk"></button></div>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script src="config.js"></script>
 <script src="qrcode.js"></script>
@@ -225,6 +244,43 @@
     } finally { $('create').disabled = false; }
   }
 
+  let toastTimer = null;
+  function toast(text) {
+    $('toast').textContent = text; $('toast').classList.add('on');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('on'), 4500);
+  }
+
+  // 일부 브라우저 창은 confirm·prompt를 띄우지 않고 바로 취소하므로 페이지 안에서 직접 묻는다.
+  function ask({ title, body = '', ok, danger = false, value = null }) {
+    return new Promise((resolve) => {
+      const input = $('askInput');
+      $('askTitle').textContent = title; $('askBody').textContent = body; $('askOk').textContent = ok;
+      $('askOk').className = danger ? 'danger' : 'main';
+      input.hidden = value === null; input.value = value ?? '';
+      const done = (v) => { $('ask').classList.remove('on'); document.removeEventListener('keydown', key); resolve(v); };
+      const key = (e) => {
+        if (e.key === 'Escape') done(null);
+        if (e.key === 'Enter' && value !== null && !e.isComposing) done(input.value);
+      };
+      $('askOk').onclick = () => done(value === null ? true : input.value);
+      $('askCancel').onclick = () => done(null);
+      document.addEventListener('keydown', key);
+      $('ask').classList.add('on');
+      (value === null ? $('askCancel') : input).focus();
+    });
+  }
+
+  // 교사 기능 호출. 서버가 거절하거나 연결이 끊기면 이유를 화면에 알린다.
+  async function act(name, body = {}) {
+    try {
+      if (await wcRpc(name, { p_code: session.code, p_secret: session.secret, ...body })) return true;
+      toast('이 브라우저에는 이 활동의 관리 권한이 없어요. 활동을 처음 만든 브라우저에서 눌러 주세요.');
+    } catch (e) {
+      toast('연결이 불안정해요. 잠시 뒤 다시 눌러 주세요.');
+    }
+    return false;
+  }
+
   async function renderManage() {
     const rows = (list, label, hide) => {
       const box = document.createElement('div');
@@ -235,8 +291,7 @@
         const n = document.createElement('b'); n.textContent = `${it.n}명`;
         const b = document.createElement('button'); b.textContent = label;
         b.onclick = async () => {
-          await wcRpc('wc_set_hidden', { p_code: session.code, p_secret: session.secret, p_key: it.k, p_hidden: hide });
-          await poll(); renderManage();
+          if (await act('wc_set_hidden', { p_key: it.k, p_hidden: hide })) { await poll(); renderManage(); }
         };
         line.append(t, n, b); box.append(line);
       });
@@ -252,22 +307,19 @@
   $('openManage').onclick = () => { $('manage').classList.add('on'); renderManage(); };
   $('closeManage').onclick = () => $('manage').classList.remove('on');
   $('toggleOpen').onclick = async () => {
-    await wcRpc('wc_set_room', { p_code: session.code, p_secret: session.secret, p_question: last.question, p_open: !last.is_open });
-    poll();
+    if (await act('wc_set_room', { p_question: last.question, p_open: !last.is_open })) poll();
   };
   $('editQ').onclick = async () => {
-    const q = prompt('새 질문을 적어 주세요.', last ? last.question : '');
-    if (q && q.trim()) { await wcRpc('wc_set_room', { p_code: session.code, p_secret: session.secret, p_question: q.trim(), p_open: last.is_open }); poll(); }
+    const q = await ask({ title: '질문 바꾸기', body: '학생 화면의 질문도 함께 바뀝니다.', ok: '바꾸기', value: last ? last.question : '' });
+    if (q && q.trim() && await act('wc_set_room', { p_question: q.trim(), p_open: last.is_open })) { poll(); toast('질문을 바꿨어요.'); }
   };
   $('clear').onclick = async () => {
-    if (!confirm('지금까지 모인 의견을 모두 지울까요? 되돌릴 수 없습니다.')) return;
-    await wcRpc('wc_clear', { p_code: session.code, p_secret: session.secret });
-    colorOf.clear(); poll();
+    const yes = await ask({ title: '의견을 모두 지울까요?', body: '지금까지 모인 의견이 삭제되고 되돌릴 수 없습니다. 활동과 QR은 그대로 쓸 수 있습니다.', ok: '전체 지우기', danger: true });
+    if (yes && await act('wc_clear')) { colorOf.clear(); poll(); toast('의견을 모두 지웠어요.'); }
   };
   $('finish').onclick = async () => {
-    if (!confirm('활동을 끝내고 이 방의 기록을 모두 삭제할까요? 되돌릴 수 없습니다.')) return;
-    await wcRpc('wc_delete_room', { p_code: session.code, p_secret: session.secret });
-    save(null); location.reload();
+    const yes = await ask({ title: '활동을 끝낼까요?', body: '이 활동의 질문과 의견이 서버에서 모두 삭제되고 되돌릴 수 없습니다. QR도 더 이상 쓸 수 없습니다.', ok: '끝내고 삭제', danger: true });
+    if (yes && await act('wc_delete_room')) { save(null); location.reload(); }
   };
   $('full').onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen());
   $('hideDock').onclick = () => { $('live').classList.add('noDock'); requestAnimationFrame(draw); };
